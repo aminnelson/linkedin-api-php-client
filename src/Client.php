@@ -299,6 +299,50 @@ class Client
         return $this->accessToken;
     }
 
+  /**
+   * Retrieve All Token from LinkedIn if we have code provided.
+   * If code is not provided, return current Access Token.
+   * If current access token is not set, will return null
+   *
+   * @param string $code
+   *
+   * @return \LinkedIn\AccessToken|null
+   * @throws \LinkedIn\Exception
+   */
+  public function getAllTokens($code = '')
+  {
+    if (!empty($code)) {
+      $uri = $this->buildUrl('accessToken', []);
+      $guzzle = new GuzzleClient([
+        'headers' => [
+          'Content-Type' => 'application/json',
+          'x-li-format' => 'json',
+          'Connection' => 'Keep-Alive'
+        ]
+      ]);
+      try {
+        $response = $guzzle->post($uri, ['form_params' => [
+          'grant_type' => self::OAUTH2_GRANT_TYPE,
+          self::OAUTH2_RESPONSE_TYPE => $code,
+          'redirect_uri' => $this->getRedirectUrl(),
+          'client_id' => $this->getClientId(),
+          'client_secret' => $this->getClientSecret(),
+        ]]);
+      } catch (RequestException $exception) {
+        throw Exception::fromRequestException($exception);
+      }
+
+      $json = \GuzzleHttp\json_decode(
+        $response->getBody()->getContents(),
+        true
+      );
+      
+      return $json;
+    }
+    
+    return $this->accessToken;
+  }
+
     /**
      * Convert API response into Array
      *
